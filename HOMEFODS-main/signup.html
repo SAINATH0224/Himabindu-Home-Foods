@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Himabindu Home Foods</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: '#E65D20', // Based on the loader color
+            }
+          }
+        }
+      }
+    </script>
+
+    <style>
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #E65D20;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center py-12">
+    <div class="w-full max-w-md">
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <div class="text-center mb-8">
+                <h1 class="text-2xl font-bold text-gray-800">Create Account</h1>
+                <p class="text-gray-600 mt-2">Join Himabindu Home Foods</p>
+            </div>
+
+            <form id="signupForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Full Name
+                    </label>
+                    <input type="text" 
+                           id="fullName"
+                           required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Phone Number
+                    </label>
+                    <div class="flex">
+                        <span class="inline-flex items-center px-3 text-gray-500 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg">
+                            +91
+                        </span>
+                        <input type="tel" 
+                               id="phoneNumber"
+                               required
+                               pattern="[0-9]{10}"
+                               placeholder="10-digit number"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Email Address
+                    </label>
+                    <input type="email" 
+                           id="email"
+                           required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Default Address
+                    </label>
+                    <textarea id="address"
+                              required
+                              rows="3"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Password
+                    </label>
+                    <input type="password" 
+                           id="password"
+                           required
+                           minlength="6"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+
+                <button type="submit" 
+                        class="w-full bg-primary text-white py-2 rounded-lg hover:bg-primary/90 transition flex items-center justify-center">
+                    <span>Create Account</span>
+                    <div class="loader ml-2 hidden"></div>
+                </button>
+            </form>
+
+            <div id="successMessage" class="mt-6 hidden">
+                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+                    <strong class="font-bold">Success!</strong>
+                    <span class="block sm:inline"> Your account has been created successfully.</span>
+                </div>
+            </div>
+
+            <div class="mt-6 text-center">
+                <p class="text-gray-600">
+                    Already have an account? 
+                    <a href="signin.html" class="text-primary hover:underline">Sign In</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBrtUADtAu6HcniJlrll41hswuj9gnpKWg",
+            authDomain: "home-foods-9f024.firebaseapp.com",
+            projectId: "home-foods-9f024",
+            storageBucket: "home-foods-9f024.appspot.com",
+            messagingSenderId: "403437439856",
+            appId: "1:403437439856:web:a95a64fc4242552438ddb5",
+            measurementId: "G-MGPG1DRHC4"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Remove the redirect when already signed in
+        auth.onAuthStateChanged(user => {
+            // No redirection even if user is already signed in
+        });
+
+        // Function to generate customer ID
+        async function generateCustomerId(name) {
+            // Format: C-YYYYMMDD-{FullName}-{Increment}
+            const date = new Date();
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const dateStr = `${year}${month}${day}`;
+            
+            // Clean name: remove spaces and special characters
+            const cleanName = name.replace(/[^a-zA-Z0-9]/g, '');
+            
+            // Get current increment from Firestore
+            const counterRef = db.collection('counters').doc('customerIds');
+            let increment = 1;
+            
+            try {
+                // Transaction to safely get and increment counter
+                await db.runTransaction(async (transaction) => {
+                    const counterDoc = await transaction.get(counterRef);
+                    
+                    if (!counterDoc.exists) {
+                        transaction.set(counterRef, { count: 1 });
+                    } else {
+                        increment = counterDoc.data().count + 1;
+                        transaction.update(counterRef, { count: increment });
+                    }
+                });
+                
+                // Format increment with leading zeros
+                const incrementStr = String(increment).padStart(3, '0');
+                return `C-${dateStr}-${cleanName}-${incrementStr}`;
+                
+            } catch (error) {
+                console.error("Error generating customer ID:", error);
+                // Fallback in case of error
+                return `C-${dateStr}-${cleanName}-ERR`;
+            }
+        }
+
+        // Handle sign up
+        document.getElementById('signupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('fullName').value;
+            const phoneRaw = document.getElementById('phoneNumber').value;
+            const phone = "+91" + phoneRaw; // Add country code
+            const email = document.getElementById('email').value;
+            const address = document.getElementById('address').value;
+            const password = document.getElementById('password').value;
+
+            const button = e.target.querySelector('button');
+            const loader = button.querySelector('.loader');
+
+            try {
+                button.disabled = true;
+                loader.classList.remove('hidden');
+
+                // Generate customer ID
+                const customerId = await generateCustomerId(name);
+                
+                // Create user account
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const uid = userCredential.user.uid;
+                
+                // Store user data with customerId as document ID
+                await db.collection('users').doc(customerId).set({
+                    uid: uid,  // Store Firebase Auth UID as a field in the document
+                    name: name,
+                    phone: phone,
+                    email: email,
+                    defaultAddress: address,
+                    customerId: customerId,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                // Show success message
+                document.getElementById('successMessage').classList.remove('hidden');
+                
+                // Reset the form
+                document.getElementById('signupForm').reset();
+                
+                // Re-enable the button and hide loader
+                button.disabled = false;
+                loader.classList.add('hidden');
+                
+            } catch (error) {
+                console.error("Sign up error:", error);
+                alert(error.message);
+                button.disabled = false;
+                loader.classList.add('hidden');
+            }
+        });
+
+        // Phone number validation - only allow numbers and limit to 10 digits
+        document.getElementById('phoneNumber').addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);
+        });
+    </script>
+</body>
+</html>

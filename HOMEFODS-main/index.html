@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Himabindu Home Foods</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#CD5C5C',
+                        secondary: '#FFB344'
+                    },
+                    fontFamily: {
+                        'noto-telugu': ['Noto Sans Telugu', 'sans-serif'],
+                    },
+                    borderRadius: {
+                        'none': '0px',
+                        'sm': '4px',
+                        DEFAULT: '8px',
+                        'md': '12px',
+                        'lg': '16px',
+                        'xl': '20px',
+                        '2xl': '24px',
+                        '3xl': '32px',
+                        'full': '9999px',
+                        'button': '8px'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* This style is no longer needed with the updated font inclusion */
+        /*.telugu { font-family: 'Noto Sans Telugu', sans-serif; }*/
+                /* Responsive adjustments */
+    /* Base styles */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    /* General responsive adjustments */
+    @media (max-width: 1024px) {
+        .container {
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+        }
+
+        #home {
+            height: 500px !important;
+        }
+
+        #home h2 {
+            font-size: 2.5rem !important;
+        }
+    }
+
+    @media (max-width: 768px) {
+        /* Header adjustments */
+        .container {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        #home {
+            height: 400px !important;
+        }
+
+        #home h2 {
+            font-size: 2rem !important;
+        }
+
+        #home p {
+            font-size: 1.125rem !important;
+        }
+
+        /* About section */
+        #about .grid {
+            grid-template-columns: 1fr !important;
+        }
+
+        #about img {
+            height: 300px !important;
+        }
+
+        /* Menu section */
+        .category-btn {
+            padding: 0.5rem 1rem !important;
+            font-size: 0.875rem;
+        }
+
+        /* Footer */
+        footer .flex-wrap {
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        footer .grid {
+            grid-template-columns: 1fr 1fr !important;
+        }
+    }
+
+    @media (max-width: 640px) {
+        /* Further mobile adjustments */
+        #home {
+            height: 350px !important;
+        }
+
+        #home h2 {
+            font-size: 1.75rem !important;
+        }
+
+        .category-content {
+            grid-template-columns: 1fr !important;
+        }
+
+        footer .grid {
+            grid-template-columns: 1fr !important;
+        }
+
+        footer .flex.items-center {
+            flex-direction: column;
+            gap: 1rem;
+        }
+    }
+
+    #navMenu.active {
+        transform: translateX(0);
+    }
+
+    @media (min-width: 768px) {
+        #navMenu {
+            position: relative;
+            transform: none;
+            width: auto;
+            background: none;
+            box-shadow: none;
+        }
+    }
+
+    /* Cart modal responsive */
+    .cart-modal {
+        width: 100%;
+        max-width: 500px;
+        transition: all 0.3s ease;
+    }
+
+    @media (max-width: 768px) {
+        .cart-modal {
+            width: 100%;
+            right: -100%;
+        }
+
+        .user-info {
+            font-size: 0.875rem;
+            padding: 6px 12px;
+        }
+
+        .cart-badge {
+            padding: 8px 16px;
+            font-size: 0.875rem;
+        }
+    }
+</style>
+</head>
+<header class="fixed top-0 left-0 right-0 bg-white shadow-md z-50">
+  <nav class="container mx-auto px-6 py-4">
+      <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-4">
+              <a href="homepage.html" class="text-2xl font-bold">
+                  <span class="text-primary">Himabindu</span> Home Foods
+                  <span class="block text-sm text-gray-600">Authentic Homemade Cuisine</span>
+              </a>
+          </div>
+
+                                            <!-- Navigation Menu -->
+                                            <div id="navMenu" class="hidden md:flex absolute md:relative top-[80px] md:top-0 left-0 md:left-auto 
+                                            w-full md:w-auto bg-white md:bg-transparent shadow-lg md:shadow-none">
+                                           <div class="flex flex-col md:flex-row md:items-center md:space-x-6 p-4 md:p-0">
+                                               <div class="flex flex-col md:flex-row md:items-center md:space-x-6">
+                                                   <a href="#home" class="py-2 md:py-0 text-gray-700 hover:text-primary transition duration-300">Home</a>
+                                                   <a href="#about" class="py-2 md:py-0 text-gray-700 hover:text-primary transition duration-300">About</a>
+                                                   <a href="menu.html" class="py-2 md:py-0 text-gray-700 hover:text-primary transition duration-300">Menu</a>
+                                                   <a href="#contact" class="py-2 md:py-0 text-gray-700 hover:text-primary transition duration-300">Contact</a>
+                                               </div>
+                                               <div class="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4 mt-4 md:mt-0">
+                                                   <a href="menu.html" class="bg-primary text-white px-6 py-2 rounded text-center hover:bg-opacity-90 transition duration-300">Order Now</a>
+                                                   <a href="signin.html" class="border border-primary text-primary px-6 py-2 rounded text-center hover:bg-primary hover:text-white transition duration-300">Sign In</a>
+                                               </div>
+                                           </div>
+                                       </div>
+                               
+                                       <!-- Menu Toggle Button -->
+                                       <button id="menuToggle" class="md:hidden flex items-center justify-center p-2 rounded-lg hover:bg-gray-100">
+                                           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                                           </svg>
+                                       </button>
+                                   </div>
+                               </nav>
+    </header>
+
+    <main class="mt-20">
+        <section id="home" class="relative h-[600px] bg-cover bg-center" style="background-image: url('homepage.jpg')">
+            <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+            <div class="container mx-auto px-6 h-full flex items-center relative">
+                <div class="max-w-2xl text-white">
+                    <h2 class="text-5xl font-bold mb-4">Traditional Homemade Delicacies</h2>
+                    <p class="text-xl mb-8">Authentic homemade delicacies prepared with love and tradition</p>
+                    <a href="menu.html" class="bg-secondary text-white px-8 py-3 rounded text-lg hover:bg-opacity-90">Browse Menu</a>
+                </div>
+            </div>
+        </section>
+
+        <section id="about" class="py-16 bg-gray-50">
+          <div class="container mx-auto px-6">
+              <div class="grid md:grid-cols-2 gap-12 items-center">
+                  <div>
+                      <h3 class="text-4xl font-extrabold mb-6 text-gray-800" style="font-family: 'Poppins', sans-serif;">
+                          About Us
+                      </h3>
+                      <p class="text-gray-700 text-lg mb-6 leading-relaxed" style="font-family: 'Merriweather', serif;">
+                          Welcome to <strong>హామబిందు హోమ్ ఫుడ్స్</strong>, your one-stop destination for 
+                          <strong>authentic homemade sweets, snacks, and pickles</strong> made with love and care. 
+                          Our mission is to bring the <strong>taste of tradition</strong> straight to your home with 
+                          fresh, hygienic, and preservative-free delicacies.
+                      </p>
+                      <p class="text-gray-700 text-lg mb-6 leading-relaxed" style="font-family: 'Merriweather', serif;">
+                          Every recipe we use has been <strong>passed down through generations</strong>, ensuring that you 
+                          experience the <strong>true flavors of home-cooked food</strong>. Whether you crave 
+                          <strong>mouth-watering sweets, crispy snacks, or flavorful pickles</strong>, we prepare them using 
+                          <strong>high-quality ingredients</strong>, just like how they are made at home.
+                      </p>
+
+                      <p class="text-primary text-xl font-semibold mt-6" style="font-family: 'Poppins', sans-serif;">
+                          Taste the tradition, experience the love! ❤️
+                      </p>
+                  </div>
+                  <div class="relative h-[400px]">
+                      <img src="abutus page image.jpg" 
+                           alt="Cooking" class="rounded-lg object-cover w-full h-full">
+                  </div>
+              </div>
+          </div>
+      </section>
+      
+
+        <section id="menu" class="py-8">
+            <nav class="sticky top-0 bg-white shadow-md z-50">
+                <div class="container mx-auto px-4">
+                  <p class="text-primary text-xl font-semibold mt-6 text-center" style="font-family: 'Poppins', sans-serif;">
+                     "Loved by many, recommended for you!"
+                    </p>                
+                    <div class="flex justify-center space-x-4 py-4">
+                        <button class="category-btn rounded px-6 py-2 text-gray-700 hover:bg-primary/10 active" data-category="snacks">
+                            <i class="ri-restaurant-line mr-2"></i>Snacks
+                        </button>
+                        <button class="category-btn rounded px-6 py-2 text-gray-700 hover:bg-primary/10" data-category="sweets">
+                            <i class="ri-cake-line mr-2"></i>Sweets
+                        </button>
+                        <button class="category-btn rounded px-6 py-2 text-gray-700 hover:bg-primary/10" data-category="pickles">
+                            <i class="ri-seedling-line mr-2"></i>Pickles
+                        </button>
+                    </div>
+                </div>
+            </nav>
+
+            <main class="container mx-auto px-4 py-8">
+                <div id="snacks" class="category-content grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8"></div>
+                <div id="sweets" class="category-content hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8"></div>
+                <div id="pickles" class="category-content hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8"></div>
+            </main>
+        </section>
+
+
+        <footer id="contact" class="bg-gray-900 text-white py-8 md:py-12">
+            <div class="container mx-auto px-4 md:px-6">
+                <div class="flex flex-col md:flex-row items-center justify-between mb-8 md:mb-10 space-y-4 md:space-y-0">
+                    <div class="flex-1">
+                        <h3 class="text-2xl font-bold mb-2">Home Delivery Available</h3>
+                        <p class="text-gray-300">Minimum order ₹500 | Delivery within 5km radius</p>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 mb-8 md:mb-10">
+                        <a href="tel:+917780720178" class="flex items-center space-x-2 hover:text-secondary transition">
+                            <i class="ri-phone-fill text-2xl"></i>
+                            <span>+917780720178</span>
+                        </a>
+                        <a href="https://wa.me/917780720178" class="flex items-center space-x-2 hover:text-green-500 transition">
+                            <i class="ri-whatsapp-fill text-2xl"></i>
+                            <span>WhatsApp</span>
+                        </a>
+                        <a href="menu.html"><button class="bg-white text-primary px-6 py-2 rounded hover:bg-opacity-90">Order Now</button></a>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 mb-8 md:mb-10">
+                    <div>
+                        <h4 class="text-xl font-bold mb-4">Business Hours</h4>
+                        <p class="text-gray-300">Mon - Sat: 9:00 AM - 8:00 PM</p>
+                    </div>
+                    <div>
+                        <h4 class="text-xl font-bold mb-4">Contact</h4>
+                        <p class="text-gray-300">Phone: +91 7708720178</p>
+                        <p class="text-gray-300">Email: info@hamabindu.com</p>
+                    </div>
+                    <div>
+                        <h4 class="text-xl font-bold mb-4">Address</h4>
+                        <p class="text-gray-300">Sai Vamshi Colony</p>
+                        <p class="text-gray-300">Jadcherla, Telangana 500001</p>
+                    </div>
+                    <div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 mb-8 md:mb-10">
+                    <p class="text-gray-400">&copy; 2025 Himabindu Home Foods. All rights reserved.</p>
+                </div>
+            </div>
+        </footer>
+    </main>
+
+    <script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Mobile Menu Elements
+    const menuToggle = document.getElementById('menuToggle');
+    const navMenu = document.getElementById('navMenu');
+
+    // Mobile Menu Functions
+    if (menuToggle && navMenu) {
+        // Toggle menu
+        menuToggle.addEventListener('click', () => {
+            navMenu.classList.toggle('hidden');
+        });
+
+        // Close menu when clicking any navigation link
+        navMenu.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth < 768) {
+                    navMenu.classList.add('hidden');
+                }
+            });
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!menuToggle.contains(e.target) && !navMenu.contains(e.target)) {
+                navMenu.classList.add('hidden');
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 768) {
+                navMenu.classList.remove('hidden');
+            } else {
+                navMenu.classList.add('hidden');
+            }
+        });
+    }
+
+    // Product Data
+    const mockData = {
+snacks: [
+{
+name: { te: "మురukulu", en: "Murukulu" },
+description: {
+te: "క్రిస్పీ మరియు స్పైసీ మురukulu",
+en: "Crispy and spicy rice flour snacks",
+},
+image: "మురుకులు.jpg"
+
+},
+{
+name: { te: "కారం అప్పాలు", en: "Kaaram Appalu" },
+description: {
+te: "సుగంధభరితమైన మరియు పసుపురంగు అప్పాలు",
+en: "Flavorful and golden fried spiced rice crackers",
+},
+image: "kaaram Appalu.jpg"
+},
+{
+name: { te: "కజ్జికాయలు", en: "Kajjikayalu" },
+description: {
+te: "తీపి పిండితో నిండిన సుగంధభరిత డెజర్ట్",
+en: "Sweet and aromatic deep-fried dumplings filled with coconut and jaggery",
+},
+image: "కజ్జికాయలు.jpg"
+
+},
+],
+sweets: [
+{
+name: { te: "మైసూర్ పాక్", en: "Mysore Pak" },
+description: {
+te: "నెయ్యితో చేసిన మైసూర్ పాక్",
+en: "Ghee-based traditional sweet",
+},
+image: "Mysore Pak.jpg"
+},
+{
+name: { te: "గులాబ్ జామున్", en: "Gulab Jamun" },
+description: {
+te: "చక్కెర సిరప్‌లో ఉంచిన మృదువైన గులాబ్ జామున్",
+en: "Soft milk dumplings in sugar syrup",
+},
+image: "Gulab Jamun.jpg"
+},
+],
+pickles: [
+{
+name: { te: "మామిడి పచ్చడి", en: "Mango Pickle" },
+description: {
+te: "సాంప్రదాయ మామిడి పచ్చడి",
+en: "Traditional mango pickle",
+},
+image: "Mamidi_Kaaya_Pacchadi.jpg"
+},
+{
+name: { te: "నిమ్మకాయ పచ్చడి", en: "Lemon Pickle" },
+description: {
+te: "తీపి మరియు పులుపు నిమ్మకాయ పచ్చడి",
+en: "Sweet and sour lemon pickle",
+},
+image: "Nimmakaya_Pacchadi.jpg"
+},
+],
+};
+
+    // Product Display Functions
+    function renderProducts(category) {
+        const container = document.getElementById(category);
+        if (!container) return;
+        
+        container.innerHTML = "";
+
+        mockData[category].forEach((item) => {
+            const card = document.createElement("div");
+            card.className = "bg-white rounded-lg shadow-lg overflow-hidden transform transition duration-300 hover:scale-105";
+            card.innerHTML = `
+                <div class="h-full flex flex-col">
+                    <img src="${item.image}" alt="${item.name.en}" 
+                         class="w-full h-48 object-cover rounded-t-lg">
+                    <div class="p-4 flex-grow flex flex-col">
+                        <h3 class="font-noto-telugu text-lg md:text-xl font-bold mb-1">${item.name.te}</h3>
+                        <p class="text-base md:text-lg text-gray-700 mb-1">${item.name.en}</p>
+                        <p class="font-noto-telugu text-sm text-gray-600 mb-1">${item.description.te}</p>
+                        <p class="text-sm text-gray-600">${item.description.en}</p>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function switchCategory(category) {
+        // Handle grid/hidden toggle for all categories
+        document.querySelectorAll(".category-content").forEach((el) => {
+            el.classList.add("hidden");
+            el.classList.remove("grid");
+        });
+        
+        // Show and apply grid to selected category
+        const selectedCategory = document.getElementById(category);
+        if (selectedCategory) {
+            selectedCategory.classList.remove("hidden");
+            selectedCategory.classList.add("grid");
+        }
+
+        // Update button styles
+        document.querySelectorAll(".category-btn").forEach((btn) => {
+            btn.classList.remove("bg-primary/10");
+            if (btn.dataset.category === category) {
+                btn.classList.add("bg-primary/10");
+            }
+        });
+    }
+
+    // Add event listeners to category buttons
+    document.querySelectorAll(".category-btn").forEach((btn) => {
+        btn.addEventListener("click", () => switchCategory(btn.dataset.category));
+    });
+
+    // Initial render
+    Object.keys(mockData).forEach((category) => renderProducts(category));
+    switchCategory("snacks"); // Show initial category
+});
+    </script>
+</body>
+</html>

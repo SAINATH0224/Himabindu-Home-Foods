@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu - Himabindu Home Foods</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    
+    <style>
+        .cart-badge {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            background: #E65D20;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            z-index: 1000;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .cart-badge:hover {
+            transform: scale(1.05);
+        }
+        
+        .cart-modal {
+            position: fixed;
+            right: -400px;
+            top: 0;
+            width: 400px;
+            height: 100vh;
+            background: white;
+            transition: 0.3s;
+            z-index: 1000;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+        
+        .cart-modal.active {
+            right: 0;
+        }
+
+        .category-btn {
+            transition: all 0.3s;
+        }
+
+        .category-btn.active {
+            background-color: #E65D20;
+            color: white;
+            transform: scale(1.05);
+        }
+        
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 4px solid #E65D20;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 40px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .product-card {
+            transition: transform 0.2s;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .cart-item {
+            transition: background-color 0.2s;
+        }
+
+        .cart-item:hover {
+            background-color: #f8f8f8;
+        }
+
+        #notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            z-index: 2000;
+            display: none;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        .notification-success {
+            background-color: #10B981;
+        }
+
+        .notification-error {
+            background-color: #EF4444;
+        }
+
+        /* Login Prompt */
+        .login-prompt-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .login-prompt {
+            background: white;
+            border-radius: 1rem;
+            width: 90%;
+            max-width: 400px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            text-align: center;
+            animation: scaleIn 0.3s;
+        }
+
+        @keyframes scaleIn {
+            from { transform: scale(0.9); }
+            to { transform: scale(1); }
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            position: fixed;
+            top: 10px;
+            left: 20px;
+            background: white;
+            padding: 8px 16px;
+            border-radius: 50px;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .user-info:hover {
+            transform: scale(1.05);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .cart-modal {
+                width: 100%;
+                right: -100%;
+            }
+
+            .user-info {
+                font-size: 0.875rem;
+                padding: 6px 12px;
+            }
+
+            .cart-badge {
+                padding: 8px 16px;
+                font-size: 0.875rem;
+            }
+        }
+    </style>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#E65D20',
+                        secondary: '#F3B95F'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-[#FFF9F5]">
+    <!-- Notification -->
+    <div id="notification"></div>
+
+    <!-- Login Prompt -->
+    <div id="loginPrompt" class="login-prompt-overlay">
+        <div class="login-prompt">
+            <i class="ri-user-line text-4xl text-primary mb-4"></i>
+            <h3 class="text-2xl font-bold mb-4">Sign In Required</h3>
+            <p class="mb-6 text-gray-600">To add items to your cart, please sign in to your account.</p>
+            <div class="flex flex-col space-y-4">
+                <button id="goToLoginBtn" class="bg-primary text-white px-4 py-2 rounded hover:bg-primary/90 w-full">
+                    Sign In
+                </button>
+                <button id="closeLoginPrompt" class="text-gray-500 hover:text-gray-700">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Info -->
+    <div id="userInfo" class="user-info hidden">
+        <i class="ri-user-line mr-2"></i>
+        <span id="userEmail">user@example.com</span>
+        <button id="signOutBtn" class="ml-4 text-sm text-primary hover:text-primary/80">
+            Sign Out
+        </button>
+    </div>
+
+    <!-- Cart Badge -->
+    <div class="cart-badge" onclick="toggleCart()">
+        <i class="ri-shopping-cart-line"></i>
+        <span id="cartCount">0</span> items
+    </div>
+
+    <!-- Cart Modal -->
+    <div id="cartModal" class="cart-modal p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold">Your Cart</h3>
+            <button onclick="toggleCart()" class="text-gray-500 hover:text-gray-700">
+                <i class="ri-close-line text-2xl"></i>
+            </button>
+        </div>
+        <div id="cartItems" class="space-y-4 max-h-[60vh] overflow-y-auto"></div>
+        <div class="border-t mt-6 pt-6">
+            <div class="flex justify-between mb-4">
+                <span>Total:</span>
+                <span id="cartTotal" class="font-bold">₹0</span>
+            </div>
+            <button onclick="checkout()" 
+                    class="w-full bg-primary text-white py-2 rounded hover:bg-primary/90 transition">
+                Checkout
+            </button>
+        </div>
+    </div>
+
+    <header class="relative bg-gradient-to-r from-primary/10 to-secondary/10 py-12">
+        <div class="container mx-auto px-4">
+            <div class="text-center">
+                <h1 class="text-4xl font-bold text-primary mb-2">Himabindu Home Foods</h1>
+                <p class="text-xl text-gray-600">Traditional Home Foods</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Category Navigation -->
+    <nav class="sticky top-0 bg-white shadow-md z-40">
+        <div class="container mx-auto px-4">
+            <div id="categoryNav" class="flex justify-center space-x-4 py-4 overflow-x-auto">
+                <!-- Categories will be dynamically loaded here -->
+            </div>
+        </div>
+    </nav>
+
+    <!-- Product Grid -->
+    <main class="container mx-auto px-4 py-8">
+        <div id="productGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Products will be dynamically loaded here -->
+        </div>
+    </main>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBrtUADtAu6HcniJlrll41hswuj9gnpKWg",
+            authDomain: "home-foods-9f024.firebaseapp.com",
+            projectId: "home-foods-9f024",
+            storageBucket: "home-foods-9f024.appspot.com",
+            messagingSenderId: "403437439856",
+            appId: "1:403437439856:web:a95a64fc4242552438ddb5",
+            measurementId: "G-MGPG1DRHC4"
+        };
+    
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+    
+        // Global variables
+        let products = {};
+        let cart = [];
+        let currentUser = null;
+    
+        // Utility Functions
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = type === 'success' ? 'notification-success' : 'notification-error';
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 500);
+        }
+    
+        function showLoginPrompt() {
+            document.getElementById('loginPrompt').style.display = 'flex';
+        }
+    
+        function hideLoginPrompt() {
+            document.getElementById('loginPrompt').style.display = 'none';
+        }
+    
+        function navigateToLogin() {
+            window.location.href = 'signin.html';
+        }
+    
+        async function signOut() {
+            try {
+                await auth.signOut();
+                showNotification('Signed out successfully', 'success');
+                cart = [];
+                updateCartUI();
+            } catch (error) {
+                console.error("Sign out error:", error);
+                showNotification(error.message, 'error');
+            }
+        }
+    
+        // Cart Functions
+        function toggleCart() {
+            const cartModal = document.getElementById('cartModal');
+            cartModal.classList.toggle('active');
+        }
+    
+        function updateCartUI() {
+    const cartCount = document.getElementById('cartCount');
+    const cartItems = document.getElementById('cartItems');
+    const cartTotal = document.getElementById('cartTotal');
+    
+    cartItems.innerHTML = '';
+    let total = 0;
+
+    cart.forEach(item => {
+        const itemTotal = calculateItemTotal(item);
+        total += itemTotal;
+        
+        const pricePerUnit = item.priceType === 'halfKg' ? item.price * 2 : item.price;
+        
+        cartItems.innerHTML += `
+            <div class="cart-item flex items-center space-x-4 p-4 border rounded-lg">
+                <div class="flex-grow">
+                    <h4 class="font-medium">${item.name}</h4>
+                    <div class="text-sm text-gray-500">
+                        ₹${pricePerUnit} per ${item.priceType === 'halfKg' ? 'kg' : getUnitLabel(item.priceType)}
+                    </div>
+                </div>
+                <div class="flex flex-col items-end space-y-2">
+                    <div class="flex items-center border rounded-lg overflow-hidden">
+                        <button onclick="updateItemQuantity('${item.id}', ${item.quantity - getStepValue(item.priceType)})"
+                                class="px-2 py-1 bg-gray-100 hover:bg-gray-200">
+                            <i class="ri-subtract-line"></i>
+                        </button>
+                        <span class="px-3">${item.quantity} ${getUnitLabel(item.priceType)}</span>
+                        <button onclick="updateItemQuantity('${item.id}', ${item.quantity + getStepValue(item.priceType)})"
+                                class="px-2 py-1 bg-gray-100 hover:bg-gray-200">
+                            <i class="ri-add-line"></i>
+                        </button>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-medium">₹${itemTotal.toFixed(2)}</div>
+                        <button onclick="updateItemQuantity('${item.id}', 0)"
+                                class="text-red-500 text-sm hover:text-red-700">
+                            Remove
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    cartCount.textContent = cart.length;
+    cartTotal.textContent = `₹${total.toFixed(2)}`;
+}
+
+function calculateItemTotal(item) {
+    let pricePerUnit;
+    switch(item.priceType) {
+        case 'kg':
+            pricePerUnit = item.price;
+            break;
+        case 'halfKg':
+            pricePerUnit = item.price * 2; // Convert to per kg price
+            break;
+        case 'unit':
+            pricePerUnit = item.price;
+            break;
+        default:
+            pricePerUnit = item.price;
+    }
+    return pricePerUnit * item.quantity;
+}
+    
+function addToCart(productId, categoryId) {
+    if (!currentUser) {
+        showLoginPrompt();
+        return;
+    }
+    
+    const product = products[categoryId].find(p => p.id === productId);
+    
+    if (!product) {
+        showNotification("Product not found", 'error');
+        return;
+    }
+
+    const cartItem = cart.find(item => item.id === productId);
+    
+    if (!cartItem) {
+        const defaultQuantity = getDefaultQuantity(product.priceType);
+        
+        cart.push({ 
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            priceType: product.priceType || 'unit', // Ensure priceType has a default value
+            quantity: defaultQuantity,
+            category: categoryId,
+            totalPrice: product.price * defaultQuantity // Add total price calculation
+        });
+        
+        updateCartUI();
+        displayProducts(categoryId);
+        showNotification('Added to cart', 'success');
+    }
+}
+
+function getDefaultQuantity(priceType) {
+    switch(priceType) {
+        case 'kg':
+        case 'halfKg':
+            return 1; // Default to 1kg
+        case 'unit':
+            return 1; // Default to 1 piece
+        default:
+            return 1;
+    }
+}
+    
+function updateItemQuantity(productId, newQuantity) {
+    if (!currentUser) {
+        showLoginPrompt();
+        return;
+    }
+
+    const cartItem = cart.find(item => item.id === productId);
+    if (!cartItem) return;
+
+    // Get minimum quantity based on price type
+    const minQuantity = getMinQuantity(cartItem.priceType);
+    
+    // If trying to reduce below minimum, remove item
+    if (newQuantity < minQuantity) {
+        cart = cart.filter(item => item.id !== productId);
+        const category = cartItem.category;
+        if (category) {
+            displayProducts(category);
+        }
+    } else {
+        // For kg/halfKg items, ensure quantity is in 0.5 steps
+        if (cartItem.priceType === 'kg' || cartItem.priceType === 'halfKg') {
+            newQuantity = Math.round(newQuantity * 2) / 2; // Round to nearest 0.5
+        }
+        cartItem.quantity = newQuantity;
+    }
+    
+    updateCartUI();
+}
+    
+async function checkout() {
+    if (!currentUser) {
+        showLoginPrompt();
+        showNotification('Please sign in to checkout', 'error');
+        return;
+    }
+    
+    if (cart.length === 0) {
+        showNotification('Your cart is empty!', 'error');
+        return;
+    }
+
+    try {
+        // Calculate total amount correctly
+        const totalAmount = cart.reduce((sum, item) => sum + calculateItemTotal(item), 0);
+        
+        // Store cart and total in session storage with all necessary information
+        const cartForStorage = cart.map(item => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            priceType: item.priceType || 'unit', // Ensure priceType has a default value
+            quantity: item.quantity,
+            totalPrice: calculateItemTotal(item),
+            category: item.category
+        }));
+        
+        sessionStorage.setItem('pendingCart', JSON.stringify(cartForStorage));
+        sessionStorage.setItem('totalAmount', totalAmount.toString());
+        
+        window.location.href = 'ordernow.html';
+    } catch (error) {
+        console.error("Error during checkout:", error);
+        showNotification('Failed to process checkout', 'error');
+    }
+}
+    
+        // Product Display Functions
+        async function fetchCategories() {
+            try {
+                const categoryNav = document.getElementById('categoryNav');
+                categoryNav.innerHTML = '<div class="loader"></div>';
+                
+                const categories = ['sweets', 'pickles', 'powders', 'snacks'];
+                
+                categoryNav.innerHTML = categories.map((category, index) => `
+                    <button class="category-btn px-6 py-2 rounded-full ${index === 0 ? 'active' : ''}"
+                            onclick="showCategory('${category}')">
+                        ${category.charAt(0).toUpperCase() + category.slice(1)}
+                    </button>
+                `).join('');
+    
+                if (categories.length > 0) {
+                    showCategory(categories[0]);
+                }
+            } catch (error) {
+                console.error("Error fetching categories:", error);
+                showNotification('Failed to load categories', 'error');
+            }
+        }
+    
+        async function showCategory(categoryId) {
+            try {
+                if (products[categoryId]) {
+                    displayProducts(categoryId);
+                } else {
+                    await fetchItems(categoryId);
+                }
+    
+                document.querySelectorAll('.category-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.textContent.toLowerCase() === categoryId) {
+                        btn.classList.add('active');
+                    }
+                });
+            } catch (error) {
+                console.error("Error showing category:", error);
+                showNotification('Failed to load category', 'error');
+            }
+        }
+    
+        async function fetchItems(categoryId) {
+            try {
+                const productGrid = document.getElementById('productGrid');
+                productGrid.innerHTML = '<div class="loader"></div>';
+                
+                const itemsRef = db.collection('items').doc(categoryId).collection('products');
+                const snapshot = await itemsRef.get();
+                
+                products[categoryId] = [];
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    products[categoryId].push({
+                        id: doc.id,
+                        ...data
+                    });
+                });
+                
+                displayProducts(categoryId);
+            } catch (error) {
+                console.error("Error fetching items:", error);
+                showNotification('Failed to load products', 'error');
+                document.getElementById('productGrid').innerHTML = 
+                    '<p class="text-center col-span-full text-red-500">Failed to load products. Please try again.</p>';
+            }
+        }
+    //-----------------------------------------------------------------------------------------------
+    function displayProducts(categoryId) {
+    const grid = document.getElementById('productGrid');
+    
+    if (!products[categoryId] || products[categoryId].length === 0) {
+        grid.innerHTML = '<p class="text-center col-span-full">No items available in this category</p>';
+        return;
+    }
+    
+    grid.innerHTML = products[categoryId].map(product => {
+        const isInCart = cart.some(item => item.id === product.id);
+        const cartItem = cart.find(item => item.id === product.id);
+        const currentQuantity = cartItem ? cartItem.quantity : 0;
+        
+        return `
+            <div class="product-card bg-white rounded-lg shadow-lg overflow-hidden">
+                <img src="${product.image || 'placeholder.jpg'}" 
+                     alt="${product.name}" 
+                     class="w-full h-48 object-cover"
+                     onerror="this.src='https://via.placeholder.com/400x300?text=No+Image'">
+                <div class="p-4">
+                    <h3 class="text-xl font-bold mb-1">${product.name}</h3>
+                    <p class="text-sm text-gray-600 mb-2">${product.description || ''}</p>
+                    <div class="flex justify-between items-center mt-4">
+                        <div class="flex flex-col">
+                            <span class="text-lg font-bold">₹${product.price}</span>
+                            <span class="text-sm text-gray-600">
+                                ${formatPriceType(product.priceType)}
+                            </span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            ${isInCart ? `
+                                <div class="flex items-center border rounded-lg overflow-hidden">
+                                    <button onclick="event.stopPropagation(); updateQuantityFromGrid('${product.id}', ${currentQuantity - getStepValue(product.priceType)}, '${categoryId}')"
+                                            class="px-2 py-1 bg-gray-100 hover:bg-gray-200">
+                                        <i class="ri-subtract-line"></i>
+                                    </button>
+                                    <span class="px-3">${currentQuantity} ${getUnitLabel(product.priceType)}</span>
+                                    <button onclick="event.stopPropagation(); updateQuantityFromGrid('${product.id}', ${currentQuantity + getStepValue(product.priceType)}, '${categoryId}')"
+                                            class="px-2 py-1 bg-gray-100 hover:bg-gray-200">
+                                        <i class="ri-add-line"></i>
+                                    </button>
+                                </div>
+                            ` : `
+                                <button onclick="addToCart('${product.id}', '${categoryId}')"
+                                        class="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition">
+                                    Add to Cart
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Add this new function to handle quantity updates from the product grid
+function updateQuantityFromGrid(productId, newQuantity, categoryId) {
+    if (!currentUser) {
+        showLoginPrompt();
+        return;
+    }
+
+    const cartItem = cart.find(item => item.id === productId);
+    if (!cartItem) return;
+
+    const minQuantity = getMinQuantity(cartItem.priceType);
+
+    if (newQuantity < minQuantity) {
+        cart = cart.filter(item => item.id !== productId);
+    } else {
+        if (cartItem.priceType === 'kg' || cartItem.priceType === 'halfKg') {
+            newQuantity = Math.round(newQuantity * 2) / 2; // Round to nearest 0.5
+        }
+        cartItem.quantity = newQuantity;
+    }
+
+    updateCartUI();
+    displayProducts(categoryId); // Refresh the product grid
+}
+    
+
+
+function formatPriceType(priceType) {
+    switch(priceType) {
+        case 'unit':
+            return 'per piece';
+        case 'kg':
+            return 'per kg';
+        case 'halfKg':
+            return 'per 500g';
+        default:
+            return 'per piece';
+    }
+}
+
+function getMinQuantity(priceType) {
+    switch(priceType) {
+        case 'kg':
+        case 'halfKg':
+            return 0.5; // Minimum is 500g (0.5kg)
+        case 'unit':
+            return 1; // Minimum is 1 piece
+        default:
+            return 1;
+    }
+}
+
+function getStepValue(priceType) {
+    switch(priceType) {
+        case 'kg':
+        case 'halfKg':
+            return 0.5; // Steps of 500g
+        case 'unit':
+            return 1; // Steps of 1 piece
+        default:
+            return 1;
+    }
+}
+
+function getUnitLabel(priceType) {
+    switch(priceType) {
+        case 'unit':
+            return 'pc';
+        case 'kg':
+            return 'kg';
+        case 'halfKg':
+            return '500g';
+        default:
+            return 'pc';
+    }
+}
+
+function getCartItemQuantity(productId) {
+    const item = cart.find(item => item.id === productId);
+    return item ? item.quantity : 0;
+}
+        // Event Listeners
+        document.getElementById('goToLoginBtn').addEventListener('click', navigateToLogin);
+        document.getElementById('closeLoginPrompt').addEventListener('click', hideLoginPrompt);
+        document.getElementById('signOutBtn').addEventListener('click', signOut);
+    
+        // Auth state observer
+        auth.onAuthStateChanged((user) => {
+            currentUser = user;
+            const userInfo = document.getElementById('userInfo');
+            
+            if (user) {
+                document.getElementById('userEmail').textContent = user.email;
+                userInfo.classList.remove('hidden');
+            } else {
+                userInfo.classList.add('hidden');
+                cart = [];
+                updateCartUI();
+            }
+        });
+    
+        // Initialize
+        document.addEventListener('DOMContentLoaded', fetchCategories);
+    </script>
+    </body>
+    </html>

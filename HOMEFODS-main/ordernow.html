@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Your Order - Himabindu Home Foods</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <style>
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 4px solid #E65D20;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #loadingOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        #notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            z-index: 2000;
+            display: none;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        .notification-success {
+            background-color: #10B981;
+        }
+
+        .notification-error {
+            background-color: #EF4444;
+        }
+
+        .error-message {
+            color: #EF4444;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+
+        .readonly-field {
+            background-color: #f3f4f6;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .order-container {
+                flex-direction: column;
+            }
+            
+            .order-form,
+            .order-summary {
+                width: 100%;
+            }        
+        }
+
+        @media (max-width: 640px) {
+        header {
+            height: auto;
+            min-height: 3.5rem;
+        }
+        
+        .container {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+    }
+    </style>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#E65D20',
+                        secondary: '#F3B95F'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay">
+        <div class="bg-white p-8 rounded-lg shadow-lg">
+            <div class="loader"></div>
+            <p class="mt-4 text-center text-gray-700">Processing your order...</p>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification"></div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-lg max-w-md w-full mx-4">
+            <div class="text-center">
+                <i class="ri-checkbox-circle-line text-6xl text-green-500"></i>
+                <h3 class="text-2xl font-semibold mt-4">Order Placed Successfully!</h3>
+                <p class="text-gray-600 mt-2">Your order ID: <span id="successOrderId" class="font-medium"></span></p>
+                <p class="text-gray-600 mt-2">We will contact you shortly to confirm your order.</p>
+                <button onclick="goToMenu()" 
+                        class="mt-6 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition">
+                    Back to Menu
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div id="errorModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-lg max-w-md w-full mx-4">
+            <div class="text-center">
+                <i class="ri-error-warning-line text-6xl text-red-500"></i>
+                <h3 class="text-xl font-semibold mt-4">Order Failed</h3>
+                <p id="errorMessage" class="text-gray-600 mt-2">Something went wrong. Please try again.</p>
+                <button onclick="closeErrorModal()" 
+                        class="mt-6 px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <header class="bg-white shadow-sm fixed w-full top-0 z-40">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <!-- Title - responsive text size -->
+                <h1 class="text-xl md:text-2xl font-bold text-primary truncate">
+                    Complete Your Order
+                </h1>
+                
+                <!-- Right side content -->
+                <div class="flex items-center space-x-2 md:space-x-4">
+                    <!-- Username - hide on very small screens -->
+                    <span id="userName" class="hidden sm:block text-sm md:text-base text-gray-600 truncate"></span>
+                    
+                    <!-- Back button - responsive styling -->
+                    <button onclick="goBack()" 
+                            class="text-gray-600 hover:text-primary flex items-center text-sm md:text-base py-2 px-2 md:px-3 transition-colors duration-200">
+                        <i class="ri-arrow-left-line mr-1"></i>
+                        <span class="hidden sm:inline">Back to Menu</span>
+                        <span class="sm:hidden">Back</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 pt-24 pb-16">
+        <div class="flex flex-wrap -mx-4">
+            <!-- Order Form -->
+            <div class="w-full lg:w-8/12 px-4">
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+                    <h2 class="text-xl font-semibold mb-6">Delivery Details</h2>
+                    <form id="orderForm" class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Full Name</label>
+                            <input type="text" 
+                                   id="customerName" 
+                                   readonly
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg readonly-field">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Phone Number</label>
+                            <input type="tel" 
+                                   id="customerPhone" 
+                                   readonly
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg readonly-field">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Delivery Address</label>
+                            <textarea id="deliveryAddress" 
+                                      readonly
+                                      rows="3"
+                                      class="w-full px-4 py-2 border border-gray-300 rounded-lg readonly-field"></textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Payment Method</label>
+                            <div class="space-y-2">
+                                <label class="flex items-center">
+                                    <input type="radio" name="payment" value="Cash on Delivery" required class="mr-2">
+                                    Cash on Delivery
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="payment" value="UPI Payment" required class="mr-2">
+                                    UPI Payment
+                                </label>
+                            </div>
+                            <div id="paymentError" class="error-message"></div>
+                        </div>
+                        
+                        <button type="submit" 
+                                class="w-full py-3 bg-primary text-white font-medium rounded-lg hover:bg-primary/90 transition">
+                            Place Order
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Order Summary -->
+            <div class="w-full lg:w-4/12 px-4">
+                <div class="bg-white rounded-lg shadow-sm p-6 sticky top-24">
+                    <h2 class="text-xl font-semibold mb-4">Order Summary</h2>
+                    <div id="orderItems" class="space-y-4 mb-6 max-h-[400px] overflow-y-auto">
+                        <!-- Order items will be loaded here -->
+                    </div>
+                    <div class="border-t pt-4">
+                        <div class="flex justify-between font-semibold text-lg">
+                            <span>Total Amount</span>
+                            <span id="total">₹0.00</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">
+                            Estimated delivery: <span id="deliveryDate"></span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+  // Firebase Configuration
+// 📌 Fetch Firebase Config Securely from Backend
+let auth, db;
+
+// Firebase Configuration
+async function getFirebaseConfig() {
+    try {
+        // Updated endpoint path to match server routes
+        const response = await fetch('https://abhi-red-one.vercel.app/api/credentials/firebase');
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch Firebase config: ${response.status} ${response.statusText}`);
+        }
+        
+        const config = await response.json();
+        
+        // Check if config has required fields
+        if (!config.apiKey || !config.authDomain || !config.projectId) {
+            throw new Error("Invalid Firebase configuration received");
+        }
+        
+        const app = firebase.initializeApp(config);
+        auth = firebase.auth();
+        db = firebase.firestore();
+        return { auth, db };
+    } catch (error) {
+        console.error("❌ Error fetching Firebase config:", error);
+        throw error;
+    }
+}
+
+// Initialize EmailJS
+async function initializeEmailJS() {
+    try {
+        // Updated endpoint path to match server routes
+        const response = await fetch('https://abhi-red-one.vercel.app/api/credentials/emailjs');
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch EmailJS config: ${response.status} ${response.statusText}`);
+        }
+        
+        const config = await response.json();
+        emailjs.init(config.EMAIL_PUBLIC_KEY);
+    } catch (error) {
+        console.error("❌ Error fetching EmailJS config:", error);
+        throw error;
+    }
+}
+
+// Initialize App
+async function initApp() {
+    try {
+        // Add error handling for each initialization step
+        const { auth: firebaseAuth, db: firebaseDb } = await getFirebaseConfig();
+        auth = firebaseAuth;
+        db = firebaseDb;
+        
+        await initializeEmailJS();
+        
+        // Check if auth is properly initialized before setting listener
+        if (!auth) {
+            throw new Error("Firebase authentication not initialized");
+        }
+        
+        // Now that Firebase is initialized, set up the auth state listener
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                window.location.href = 'signin.html';
+                return;
+            }
+
+            currentUser = user;
+            
+            // Make sure showLoading and hideLoading are defined
+            if (typeof showLoading === 'function') {
+                showLoading();
+            }
+            
+            try {
+                // Make all fields editable by default
+                if (typeof makeFieldsEditable === 'function') {
+                    makeFieldsEditable();
+                }
+                
+                // Display user's email in the header
+                const userNameElement = document.getElementById('userName');
+                if (userNameElement) {
+                    userNameElement.textContent = user.email || '';
+                }
+                
+                // Load cart items
+                if (typeof loadCartItems === 'function') {
+                    loadCartItems();
+                }
+            } catch (error) {
+                console.error("Error initializing:", error);
+                if (typeof showNotification === 'function') {
+                    showNotification('Failed to initialize: ' + error.message, 'error');
+                }
+            } finally {
+                if (typeof hideLoading === 'function') {
+                    hideLoading();
+                }
+            }
+        });
+    } catch (error) {
+        console.error("Failed to initialize app:", error);
+        if (typeof showNotification === 'function') {
+            showNotification('Failed to initialize app: ' + error.message, 'error');
+        } else {
+            alert('Failed to initialize app: ' + error.message);
+        }
+    }
+}
+
+// Run on page load
+window.onload = initApp;
+
+let cartItems = [];
+let currentUser = null;
+
+// Utility Functions
+function showLoading() {
+    document.getElementById('loadingOverlay').style.display = 'flex';
+}
+
+function hideLoading() {
+    document.getElementById('loadingOverlay').style.display = 'none';
+}
+
+function showNotification(message, type = 'success') {
+    const notification = document.getElementById('notification');
+    notification.textContent = message;
+    notification.className = type === 'success' ? 'notification-success' : 'notification-error';
+    notification.style.display = 'block';
+    
+    setTimeout(() => {
+        notification.style.display = 'none';
+    }, 3000);
+}
+
+function showError(elementId, message) {
+    const errorElement = document.getElementById(elementId);
+    if (errorElement) {
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+    }
+}
+
+function clearError(elementId) {
+    const errorElement = document.getElementById(elementId);
+    if (errorElement) {
+        errorElement.textContent = '';
+        errorElement.style.display = 'none';
+    }
+}
+
+function goBack() {
+    window.location.href = 'menu.html';
+}
+
+function goToMenu() {
+    window.location.href = 'menu.html';
+}
+
+function closeErrorModal() {
+    document.getElementById('errorModal').style.display = 'none';
+}
+
+function getFormattedDeliveryDate() {
+    const deliveryDate = new Date();
+    deliveryDate.setDate(deliveryDate.getDate() + 1);
+    return deliveryDate.toLocaleDateString('en-IN', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+}
+
+// Load cart items function
+function loadCartItems() {
+    try {
+        const savedCart = sessionStorage.getItem('pendingCart');
+        if (!savedCart) {
+            showNotification('Cart is empty', 'error');
+            setTimeout(() => window.location.href = 'menu.html', 2000);
+            return;
+        }
+
+        cartItems = JSON.parse(savedCart);
+        
+        // Calculate total amount using the consistent calculation method
+        const totalAmount = cartItems.reduce((sum, item) => sum + calculateItemTotal(item), 0);
+        
+        if (!cartItems.length) {
+            showNotification('Cart is empty', 'error');
+            setTimeout(() => window.location.href = 'menu.html', 2000);
+            return;
+        }
+
+        updateOrderSummary(cartItems, totalAmount);
+        document.getElementById('deliveryDate').textContent = getFormattedDeliveryDate();
+    } catch (error) {
+        console.error("Error loading cart items:", error);
+        showNotification('Failed to load cart items', 'error');
+    }
+}
+// Update order summary function
+function updateOrderSummary(items, totalAmount) {
+    const orderItems = document.getElementById('orderItems');
+    const total = document.getElementById('total');
+
+    orderItems.innerHTML = items.map(item => {
+        const displayPrice = item.price;
+        const displayQuantity = item.quantity;
+        let unit = getUnitLabel(item.priceType);
+        
+        return `
+            <div class="flex items-center justify-between p-3 border-b">
+                <div>
+                    <h4 class="font-medium">${item.name}</h4>
+                    <p class="text-sm text-gray-600">
+                        ₹${displayPrice} × ${displayQuantity} ${unit}
+                    </p>
+                </div>
+                <div class="font-medium">₹${item.totalPrice.toFixed(2)}</div>
+            </div>
+        `;
+    }).join('');
+
+    total.textContent = `₹${totalAmount.toFixed(2)}`;
+}
+
+// Add these helper functions to maintain consistency
+function getUnitLabel(priceType) {
+    switch(priceType) {
+        case 'unit':
+            return 'pc';
+        case 'kg':
+            return 'kg';
+        case 'halfKg':
+            return '500g';
+        default:
+            return 'pc';
+    }
+}
+
+function calculateItemTotal(item) {
+    let pricePerUnit;
+    switch(item.priceType) {
+        case 'kg':
+            pricePerUnit = item.price;
+            break;
+        case 'halfKg':
+            pricePerUnit = item.price * 2; // Convert to per kg price
+            break;
+        case 'unit':
+            pricePerUnit = item.price;
+            break;
+        default:
+            pricePerUnit = item.price;
+    }
+    return pricePerUnit * item.quantity;
+}
+
+// Generate Order ID function
+// Generate Order ID function
+async function generateOrderId() {
+    try {
+        // Use the current date (March 1, 2025)
+        const today = new Date();
+        
+        // Prefix for today's orders
+        const datePrefix = `ORD-${dateString}`;
+        const ordersRef = db.collection('orders');
+
+        // Query Firestore to find the last order ID of the day
+        const snapshot = await ordersRef
+            .where('orderId', '>=', datePrefix)
+            .where('orderId', '<', datePrefix + '\uf8ff')
+            .orderBy('orderId', 'desc')  // Sorting in descending order
+            .limit(1)
+            .get();
+
+        let orderNumber = 1;  // Default first order of the day
+
+        if (!snapshot.empty) {
+            const lastOrderDoc = snapshot.docs[0];
+            const lastOrderId = lastOrderDoc.data().orderId;
+
+            // Extract and increment order number
+            const match = lastOrderId.match(/ORD-\d{8}-(\d+)/);
+            if (match) {
+                orderNumber = parseInt(match[1], 10) + 1;
+            }
+        }
+
+        // Generate new order ID in format ORD-YYYYMMDD-NNN
+        // Always use 3 digits for the order number
+        const newOrderId = `ORD-${dateString}-${String(orderNumber).padStart(3, '0')}`;
+        return newOrderId;
+
+    } catch (error) {
+        console.error("Error generating order ID:", error);
+
+        // Fallback: Using consistent date format even in error case
+        const today = new Date();
+        const dateString = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
+        const timestamp = Date.now().toString().slice(-3);
+        return `ORD-${dateString}-ERR${timestamp}`;
+    }
+}
+
+
+// Form validation function
+function validateForm() {
+    let isValid = true;
+    
+    const name = document.getElementById('customerName').value.trim();
+    if (!name) {
+        showError('nameError', 'Name is required');
+        isValid = false;
+    }
+
+    const phone = document.getElementById('customerPhone').value.trim();
+    if (!phone) {
+        showError('phoneError', 'Phone number is required');
+        isValid = false;
+    } else if (!/^[0-9]{10}$/.test(phone.replace(/[+\s-]/g, ''))) {
+        showError('phoneError', 'Please enter a valid 10-digit phone number');
+        isValid = false;
+    }
+
+    const address = document.getElementById('deliveryAddress').value.trim();
+    if (!address) {
+        showError('addressError', 'Address is required');
+        isValid = false;
+    }
+    
+    const paymentMethod = document.querySelector('input[name="payment"]:checked');
+    if (!paymentMethod) {
+        showError('paymentError', 'Please select a payment method');
+        isValid = false;
+    }
+    
+    return isValid;
+}
+
+// Form submission handler
+// Form submission handler
+document.getElementById('orderForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+        return;
+    }
+
+    try {
+        showLoading();
+
+        // Generate the order ID first
+        const orderId = await generateOrderId();
+        
+        if (!orderId || !orderId.startsWith('ORD-')) {
+            throw new Error("Failed to generate a valid order ID");
+        }
+        
+        // Get the authenticated user
+        if (!currentUser || !currentUser.uid) {
+            throw new Error("User not authenticated");
+        }
+
+        // Fetch customer ID from user profile in Firestore
+        let customerId = null;
+        try {
+            const userDoc = await db.collection('users').doc(currentUser.uid).get();
+            if (userDoc.exists) {
+                customerId = userDoc.data().customerId || userDoc.id;
+            } else {
+                // If user document doesn't exist, use uid as fallback
+                customerId = currentUser.uid;
+            }
+        } catch (profileError) {
+            console.error("Error fetching customer profile:", profileError);
+            // Fallback to using UID if there's an error
+            customerId = currentUser.uid;
+        }
+        
+        const customerName = document.getElementById('customerName').value.trim();
+        const customerPhone = document.getElementById('customerPhone').value.trim();
+        const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
+        const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
+
+        // Calculate total amount
+        const totalAmount = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+        // Set delivery date to next day
+        const deliveryDate = new Date();
+        deliveryDate.setDate(deliveryDate.getDate() + 1);
+
+        // Create order document with customerId instead of uid
+        // In the form submission handler
+const orderData = {
+    orderId: orderId,
+    customerId: customerId,
+    customerName: customerName,
+    customerPhone: customerPhone,
+    deliveryAddress: deliveryAddress,
+    items: cartItems.map(item => ({
+        name: item.name,
+        price: Number(item.price),
+        quantity: Number(item.quantity),
+        priceType: item.priceType,
+        totalPrice: calculateItemTotal(item)
+    })),
+    totalAmount: Number(cartItems.reduce((sum, item) => sum + calculateItemTotal(item), 0)),
+    paymentMethod: paymentMethod,
+    orderStatus: "Pending",
+    orderDate: firebase.firestore.FieldValue.serverTimestamp(),
+    deliveryDate: firebase.firestore.Timestamp.fromDate(deliveryDate),
+    email: currentUser.email
+};
+
+        // Save order to Firestore
+        const orderRef = db.collection('orders').doc(orderId);
+        await orderRef.set(orderData);
+
+// Send Notifications
+await sendNotifications(orderData);
+
+
+        // Clear cart
+        sessionStorage.removeItem('pendingCart');
+        sessionStorage.removeItem('totalAmount');
+
+        // Show success
+        document.getElementById('successOrderId').textContent = orderId;
+        document.getElementById('successModal').style.display = 'flex';
+
+    } catch (error) {
+        console.error("Error placing order:", error);
+        
+        // Show detailed error in modal
+        document.getElementById('errorMessage').textContent = 'Failed to place order: ' + error.message;
+        document.getElementById('errorModal').style.display = 'flex';
+    } finally {
+        hideLoading();
+    }
+});
+
+// Also update the auth state observer to fetch the customer ID when the user signs in
+auth.onAuthStateChanged(async (user) => {
+    if (!user) {
+        window.location.href = 'signin.html';
+        return;
+    }
+
+    currentUser = user;
+    showLoading();
+    
+    try {
+        // Try to fetch the user's profile to get customer ID
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        if (userDoc.exists) {
+            const userData = userDoc.data();
+            
+            // If you have the customer ID already stored, you could pre-fill fields
+            if (userData.name) {
+                document.getElementById('customerName').value = userData.name;
+            }
+            if (userData.phone) {
+                document.getElementById('customerPhone').value = userData.phone;
+            }
+            if (userData.address) {
+                document.getElementById('deliveryAddress').value = userData.address;
+            }
+            
+            // Display user's name in the header if available
+            document.getElementById('userName').textContent = userData.name || user.email || '';
+        } else {
+            document.getElementById('userName').textContent = user.email || '';
+        }
+        
+        // Make fields editable
+        makeFieldsEditable();
+        
+        // Load cart items
+        loadCartItems();
+    } catch (error) {
+        console.error("Error initializing:", error);
+        showNotification('Failed to initialize: ' + error.message, 'error');
+        // Still make fields editable and show user email
+        makeFieldsEditable();
+        document.getElementById('userName').textContent = user.email || '';
+        loadCartItems();
+    } finally {
+        hideLoading();
+    }
+});
+
+// Make fields editable by default for all users
+function makeFieldsEditable() {
+    const fields = ['customerName', 'customerPhone', 'deliveryAddress'];
+    fields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        field.readOnly = false;
+        field.classList.remove('readonly-field');
+        
+        // Add appropriate error divs if they don't exist
+        if (!document.getElementById(fieldId.replace('customer', '').toLowerCase() + 'Error')) {
+            const errorDiv = document.createElement('div');
+            errorDiv.id = fieldId.replace('customer', '').toLowerCase() + 'Error';
+            errorDiv.className = 'error-message';
+            field.parentNode.appendChild(errorDiv);
+        }
+    });
+}
+
+// Update the auth state observer to just check authentication and load cart
+auth.onAuthStateChanged(async (user) => {
+    if (!user) {
+        window.location.href = 'signin.html';
+        return;
+    }
+
+    currentUser = user;
+    showLoading();
+    
+    try {
+        // Make all fields editable by default instead of loading profile data
+        makeFieldsEditable();
+        
+        // Display user's email in the header instead of name
+        document.getElementById('userName').textContent = user.email || '';
+        
+        // Load cart items
+        loadCartItems();
+    } catch (error) {
+        console.error("Error initializing:", error);
+        showNotification('Failed to initialize: ' + error.message, 'error');
+    } finally {
+        hideLoading();
+    }
+});
+
+
+//---------------------------------------------------------
+async function sendOrderEmail(orderData) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (typeof emailjs === 'undefined') {
+                console.error('EmailJS is not loaded');
+                resolve();
+                return;
+            }
+
+            const templateParams = {
+                to_email: "abhiabhiramreddy32@gmail.com",
+                order_id: orderData.orderId,
+                customer_name: orderData.customerName,
+                total_amount: orderData.totalAmount.toFixed(2),
+                delivery_address: orderData.deliveryAddress,
+                customer_phone: orderData.customerPhone,
+                payment_method: orderData.paymentMethod,
+                
+                // Pass the entire items array
+                items: orderData.items.map(item => ({
+                    name: item.name || 'N/A',
+                    quantity: item.quantity || 0,
+                    price: item.price ? item.price.toFixed(2) : '0.00',
+                    totalPrice: item.totalPrice ? item.totalPrice.toFixed(2) : '0.00'
+                })),
+
+                // Keep first item for backward compatibility if needed
+                item_name: orderData.items[0]?.name || 'N/A',
+                item_quantity: orderData.items[0]?.quantity || 0,
+                item_price: orderData.items[0]?.price ? orderData.items[0].price.toFixed(2) : '0.00',
+                item_total: orderData.items[0]?.totalPrice ? orderData.items[0].totalPrice.toFixed(2) : '0.00'
+            };
+
+            // EmailJS is already initialized in the initApp function
+            // No need to call emailjs.init here as it's done in initializeEmailJS()
+
+            const response = await emailjs.send(
+                'service_c0g8ern',  // Your EmailJS Service ID
+                'template_bri376k', // Your EmailJS Template ID
+                templateParams
+            );
+
+            resolve();
+        } catch (error) {
+            console.error('Email sending failed:', error);
+            
+            // Log email error
+            if (db && firebase) {
+                try {
+                    await db.collection('email_errors').add({
+                        orderId: orderData.orderId,
+                        error: error.toString(),
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                } catch (dbError) {
+                    console.error('Failed to log email error:', dbError);
+                }
+            }
+
+            resolve(); // Resolve to prevent order submission failure
+        }
+    });
+}
+
+// 📱 Twilio SMS Notification Function - Modified for Vercel deployment
+async function sendSMS(orderData) {
+    try {
+        const message = `📦 New Order Received!
+Order ID: ${orderData.orderId}
+Customer: ${orderData.customerName}
+Items: ${orderData.items.length}
+Total: ₹${orderData.totalAmount.toFixed(2)}
+Contact: ${orderData.customerPhone}
+Address: ${orderData.deliveryAddress}`;
+
+        // Updated with Vercel deployment URL
+        const response = await fetch("https://abhi-red-one.vercel.app/api/send-sms", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                message: message
+            }),
+        });
+
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Error sending SMS:", error);
+        
+        // Log SMS error to Firestore
+        if (db && firebase) {
+            try {
+                await db.collection('sms_errors').add({
+                    orderId: orderData.orderId,
+                    error: error.toString(),
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } catch (dbError) {
+                console.error('Failed to log SMS error:', dbError);
+            }
+        }
+        
+        // Don't throw the error to prevent breaking the order flow
+        return null;
+    }
+}
+
+// 📬 Comprehensive Notification System
+async function sendNotifications(orderData) {
+    try {
+        // Run notifications in parallel for better performance
+        await Promise.all([
+            sendOrderEmail(orderData),
+            sendSMS(orderData)
+        ]);
+        
+        // Optional: Push Notification (requires additional setup)
+        // await sendPushNotification(orderData);
+    } catch (error) {
+        console.error('Notification Error:', error);
+        
+        // Log general notification errors
+        if (db && firebase) {
+            try {
+                await db.collection('notification_errors').add({
+                    orderId: orderData.orderId,
+                    error: error.toString(),
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } catch (dbError) {
+                console.error('Failed to log notification error:', dbError);
+            }
+        }   
+    }
+}
+
+
+
+// Add event listeners for form field changes
+document.getElementById('customerName').addEventListener('input', () => clearError('nameError'));
+document.getElementById('customerPhone').addEventListener('input', () => clearError('phoneError'));
+document.getElementById('deliveryAddress').addEventListener('input', () => clearError('addressError'));
+document.querySelectorAll('input[name="payment"]').forEach(radio => {
+    radio.addEventListener('change', () => clearError('paymentError'));
+});
+    </script>
+    </body>
+    </html>
