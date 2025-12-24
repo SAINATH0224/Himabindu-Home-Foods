@@ -220,10 +220,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 - 📱 Twilio for secure SMS delivery
 - 🚫 No secrets are committed to the repository
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
 ## Support
 
 For issues, questions, or suggestions, please open an issue on the GitHub repository.
