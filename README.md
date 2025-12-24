@@ -230,4 +230,4 @@ For issues, questions, or suggestions, please open an issue on the GitHub reposi
 
 ---
 
-**Made with ❤️ by Sainath | Home Foods 2025**
+**Made by Sainath and Abhiram | Home Foods 2025**
